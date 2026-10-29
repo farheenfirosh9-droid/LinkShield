@@ -1,4 +1,4 @@
-# 🛡️ LinkShield — Main Version
+# 🛡️ LinkShield — Main Release
 
 **Think Before You Click. Browse Smarter. Stay Safer.**
 
