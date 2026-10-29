@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="LinkShield checks website URLs for common warning signs and shares practical online safety advice.">
+<title>LinkShield | Suspicious Link Detector</title>
+
+<style>
+:root {
+    --navy: #031020;
+    --panel: #06182c;
+    --panel-light: #09213b;
+    --blue: #078cff;
+    --cyan: #00c8ff;
+    --green: #00e6a1;
+    --amber: #ffc247;
+    --red: #ff4d59;
+    --text: #f4f8ff;
+    --muted: #aec5e5;
+    --border: #123657;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    line-height: 1.65;
+}
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.container { width: 90%; max-width: 1240px; margin: 0 auto; }
+section { scroll-margin-top: 100px; }
+
+/* Navigation */
+header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(3,16,32,.96);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(14px);
+}
+.navbar {
+    min-height: 82px; display: flex; align-items: center;
+    justify-content: space-between; gap: 24px;
+}
+.logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.logo-mark { width: 48px; height: 54px; filter: drop-shadow(0 0 12px rgba(0,200,255,.4)); }
+.logo h2 { font-size: 25px; line-height: 1.2; }
+.logo h2 span { color: var(--cyan); }
+.logo p { font-size: 12px; color: var(--muted); }
+nav { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+nav a { color: #c5d8f2; font-size: 14px; transition: color .25s; }
+nav a:hover, nav a.active { color: var(--cyan); }
+
+/* Hero */
+.hero {
+    padding: 74px 0 50px; overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background: radial-gradient(ellipse at 78% 35%, rgba(0,100,220,.19), transparent 45%);
+}
+.hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; align-items: center; gap: 40px; }
+.eyebrow { color: #78b9ff; font-size: 12px; letter-spacing: 2px; font-weight: bold; margin-bottom: 12px; }
+.hero h1 { font-size: clamp(38px, 4.5vw, 62px); line-height: 1.12; letter-spacing: -1.4px; margin-bottom: 20px; }
+.hero h1 span { color: var(--blue); text-shadow: 0 0 24px rgba(0,140,255,.25); }
+.hero-copy { color: #c0d6f2; font-size: 17px; max-width: 650px; margin-bottom: 26px; }
+
+/* URL checker */
+.url-form {
+    display: flex; align-items: stretch; min-height: 62px; overflow: hidden;
+    border: 1px solid var(--blue); border-radius: 12px;
+    background: #061a32; box-shadow: 0 0 24px rgba(0,140,255,.12);
+}
+.link-icon { display: grid; place-items: center; padding: 0 17px; color: #83bdff; font-size: 22px; }
+.url-form input { min-width: 0; flex: 1; background: transparent; color: white; border: 0; outline: 0; padding: 15px 0; font-size: 14px; }
+.url-form input::placeholder { color: #89a9d1; }
+.url-form button {
+    border: 0; color: white; padding: 0 22px; font-weight: bold;
+    background: linear-gradient(120deg, var(--blue), #0064ee); transition: .25s;
+}
+.url-form button:hover { background: #00aaff; }
+.examples { color: var(--muted); font-size: 13px; margin-top: 14px; }
+.examples button {
+    display: inline-block; margin: 4px 4px 0 0; padding: 4px 10px;
+    background: #062344; border: 1px solid #14518b; border-radius: 20px;
+    color: #9bd0ff; font-size: 12px;
+}
+.examples button:hover { border-color: var(--cyan); color: white; }
+
+/* Shield artwork */
+.shield-area { min-height: 330px; display: flex; justify-content: center; align-items: center; position: relative; isolation: isolate; }
+.shield-glow {
+    position: absolute; width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,140,255,.23), rgba(0,140,255,.05) 48%, transparent 72%);
+    z-index: -2;
+}
+.orbit { position: absolute; width: 310px; height: 105px; border: 2px solid rgba(0,150,255,.55); border-radius: 50%; transform: rotate(-9deg); box-shadow: 0 0 18px rgba(0,140,255,.18); }
+.orbit.two { width: 275px; height: 80px; transform: rotate(12deg); border-color: rgba(0,200,255,.38); }
+.shield-main { width: 205px; height: 235px; filter: drop-shadow(0 0 16px rgba(0,140,255,.8)); animation: float 3.2s ease-in-out infinite; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+.status-tag { position: absolute; display: flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid currentColor; border-radius: 10px; background: rgba(5,23,42,.94); font-size: 12px; font-weight: bold; box-shadow: 0 0 20px rgba(0,0,0,.22); }
+.status-safe { top: 20px; left: 0; color: var(--green); }
+.status-warning { top: 42px; right: 0; color: var(--amber); }
+.status-danger { bottom: 25px; right: 0; color: var(--red); }
+
+/* Results */
+#result { display: none; margin-top: 26px; padding: 22px; border: 1px solid var(--border); border-radius: 14px; background: #061629; overflow-wrap: anywhere; animation: appear .3s ease; }
+@keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+#result.safe { border-color: var(--green); background: linear-gradient(120deg,#03251f,#061629); }
+#result.suspicious { border-color: var(--red); background: linear-gradient(120deg,#2a101b,#061629); }
+#result.caution { border-color: var(--amber); background: linear-gradient(120deg,#29200e,#061629); }
+#result.invalid { border-color: #8cb4e5; }
+.result-heading { display: flex; align-items: center; gap: 13px; margin-bottom: 17px; }
+.result-icon { font-size: 34px; }
+.result-heading h2 { font-size: 22px; line-height: 1.3; }
+.result-heading p { color: var(--muted); font-size: 13px; }
+.result-label { margin-left: auto; border: 1px solid currentColor; padding: 4px 9px; border-radius: 20px; font-size: 10px; white-space: nowrap; }
+#result.safe .result-heading h2, #result.safe .result-icon { color: var(--green); }
+#result.suspicious .result-heading h2, #result.suspicious .result-icon { color: var(--red); }
+#result.caution .result-heading h2, #result.caution .result-icon { color: var(--amber); }
+.result-divider { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
+#result h3 { font-size: 14px; margin: 12px 0; }
+.details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; color: #c2d8f4; font-size: 13px; }
+.detail-item { padding: 11px; border-radius: 8px; background: rgba(10,35,59,.7); overflow-wrap: anywhere; }
+.detail-item strong { display: block; color: white; margin-bottom: 3px; }
+.issue-list { list-style: none; margin: 10px 0 16px; }
+.issue-list li { margin: 8px 0; color: #d4e2f5; font-size: 13px; }
+.issue-list li::before { content: "•"; color: var(--red); font-weight: bold; margin-right: 9px; }
+.result-message { border: 1px solid currentColor; border-radius: 9px; padding: 12px; margin-top: 14px; font-size: 13px; }
+.safe .result-message { color: var(--green); }
+.suspicious .result-message { color: #ff9ba1; }
+.caution .result-message { color: #ffd06b; }
+.result-note { font-size: 12px; color: var(--muted); margin-top: 13px; }
+
+/* Shared sections */
+.features, .info-section { padding: 58px 0; border-bottom: 1px solid var(--border); }
+.section-title { text-align: center; font-size: clamp(25px, 3vw, 32px); margin-bottom: 8px; }
+.section-title span { color: var(--cyan); }
+.section-description { color: var(--muted); text-align: center; margin: 0 auto 32px; max-width: 650px; font-size: 14px; }
+.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.feature-card { padding: 23px; border: 1px solid var(--border); border-radius: 13px; background: linear-gradient(145deg,#06182c,#031020); transition: .25s; }
+.feature-card:hover { transform: translateY(-4px); border-color: var(--blue); box-shadow: 0 10px 28px rgba(0,140,255,.08); }
+.feature-icon { width: 54px; height: 54px; display: grid; place-items: center; background: #09294b; border-radius: 50%; font-size: 26px; margin-bottom: 14px; }
+.feature-card h3 { font-size: 16px; margin-bottom: 8px; }
+.feature-card p { color: var(--muted); font-size: 13px; }
+
+/* About and expanded tips */
+.info-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 22px; align-items: stretch; }
+.info-card { padding: 27px; border: 1px solid var(--border); border-radius: 13px; background: linear-gradient(145deg,#071b31,#041326); }
+.card-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.card-heading h2 { font-size: 21px; }
+.card-heading h2 span { color: var(--cyan); }
+.heading-icon { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 12px; background: #09294b; color: var(--cyan); font-size: 24px; flex-shrink: 0; }
+.info-card p { color: var(--muted); font-size: 14px; margin-bottom: 13px; }
+.notice { margin-top: 17px; padding: 13px; border-left: 3px solid var(--amber); background: rgba(255,194,71,.07); border-radius: 5px; color: #f4d99c; font-size: 12px; }
+.tips-intro { color: var(--muted); font-size: 13px; margin: -6px 0 17px; }
+.tips-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; }
+.tip { display: flex; align-items: flex-start; gap: 10px; }
+.tip-check { display: grid; place-items: center; flex: 0 0 22px; height: 22px; border-radius: 50%; background: rgba(0,230,161,.13); color: var(--green); font-size: 13px; font-weight: bold; margin-top: 2px; }
+.tip h3 { font-size: 13px; margin-bottom: 3px; color: #eef6ff; }
+.tip p { font-size: 12px; line-height: 1.5; margin: 0; }
+
+/* What to do next */
+.response-section { padding: 45px 0; border-bottom: 1px solid var(--border); }
+.response-box { border: 1px solid #16446a; border-radius: 13px; background: #06182c; padding: 25px; }
+.response-box h2 { font-size: 21px; margin-bottom: 12px; }
+.response-box h2 span { color: var(--cyan); }
+.response-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.response-step { display: flex; gap: 11px; color: var(--muted); font-size: 13px; }
+.step-number { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--cyan); border: 1px solid #1765a2; font-weight: bold; }
+
+/* Footer */
+.contact { text-align: center; padding: 45px 0; }
+.contact p { color: var(--muted); margin-top: 8px; font-size: 14px; }
+footer { padding: 22px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+.footer-content { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+footer a:hover { color: var(--cyan); }
+
+/* Responsive */
+@media (max-width: 950px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-copy { max-width: 760px; }
+    .shield-area { min-height: 290px; }
+    .feature-grid { grid-template-columns: repeat(2,1fr); }
+    .navbar { padding: 14px 0; flex-direction: column; }
+    nav { justify-content: center; gap: 18px; }
+    .info-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .container { width: 92%; }
+    .hero { padding: 42px 0; }
+    .hero h1 { font-size: 38px; }
+    .hero-copy { font-size: 15px; }
+    .url-form { flex-wrap: wrap; }
+    .link-icon { padding: 0 12px; }
+    .url-form input { width: calc(100% - 55px); flex: 1; font-size: 13px; padding-right: 8px; }
+    .url-form button { width: 100%; padding: 14px; }
+    .shield-area { min-height: 250px; }
+    .shield-main { width: 165px; height: 190px; }
+    .orbit { width: 235px; height: 80px; }
+    .orbit.two { width: 215px; height: 65px; }
+    .status-tag { font-size: 10px; padding: 6px 8px; }
+    .status-safe { top: 8px; left: 0; }
+    .status-warning { top: 23px; right: 0; }
+    .status-danger { bottom: 10px; right: 0; }
+    .feature-grid, .tips-grid, .details, .response-steps { grid-template-columns: 1fr; }
+    .features, .info-section { padding: 42px 0; }
+    .feature-card, .info-card { padding: 20px; }
+    .result-heading { flex-wrap: wrap; }
+    .result-label { margin-left: 0; }
+    .footer-content { flex-direction: column; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+
+<body>
+<header>
+    <div class="container navbar">
+        <a href="#home" class="logo" aria-label="LinkShield home">
+            <svg class="logo-mark" viewBox="0 0 100 112" role="img" aria-label="LinkShield protective shield">
+                <defs>
+                    <linearGradient id="logoBlue" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#50e8ff"/>
+                        <stop offset=".55" stop-color="#078cff"/>
+                        <stop offset="1" stop-color="#0751d8"/>
+                    </linearGradient>
+                </defs>
+                <path d="M50 4 91 20v31c0 27-17 45-41 57C26 96 9 78 9 51V20Z" fill="#041a35" stroke="url(#logoBlue)" stroke-width="7" />
+                <path d="M50 16 79 27v24c0 19-11 33-29 43C32 84 21 70 21 51V27Z" fill="url(#logoBlue)" opacity=".95"/>
+                <path d="m34 53 11 11 23-25" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div><h2>Link<span>Shield</span></h2><p>Suspicious Link Detector</p></div>
+        </a>
+        <nav aria-label="Main navigation">
+            <a href="#home" class="active">Home</a>
+            <a href="#about">About</a>
+            <a href="#how">How It Works</a>
+            <a href="#tips">Safety Tips</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+<section class="hero" id="home">
+    <div class="container hero-grid">
+        <div class="hero-text">
+            <p class="eyebrow">SAFER CLICKS · A SAFER YOU</p>
+            <h1>Think Before <span>You Click</span></h1>
+            <p class="hero-copy">LinkShield helps you check a website address for common warning signs before you decide to open it.</p>
+            <form class="url-form" id="urlForm">
+                <div class="link-icon" aria-hidden="true">↗</div>
+                <input type="text" id="urlInput" placeholder="Enter a URL (e.g. https://example.com)" aria-label="Enter a website URL" autocomplete="url" required>
+                <button type="submit">⌕ &nbsp; Check URL</button>
+            </form>
+            <div class="examples">
+                Try an example:
+                <button type="button" data-url="https://www.google.com">Example HTTPS URL</button>
+                <button type="button" data-url="http://secure-account-verify-login.example.com">Example with warning signs</button>
+            </div>
+            <div id="result" aria-live="polite" aria-atomic="true"></div>
+        </div>
+
+        <div class="shield-area" aria-label="Protective shield illustration">
+            <div class="shield-glow"></div>
+            <div class="orbit"></div><div class="orbit two"></div>
+            <svg class="shield-main" viewBox="0 0 220 250" role="img" aria-label="Blue protective shield with a checkmark">
+                <defs>
+                    <linearGradient id="shieldOuter" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#a8f5ff"/>
+                        <stop offset=".25" stop-color="#00c8ff"/>
+                        <stop offset=".65" stop-color="#078cff"/>
+                        <stop offset="1" stop-color="#0750db"/>
+                    </linearGradient>
+                    <linearGradient id="shieldInner" x1="0" y1="0" x2="0.9" y2="1">
+                        <stop offset="0" stop-color="#0c65c8"/>
+                        <stop offset=".55" stop-color="#073b86"/>
+                        <stop offset="1" stop-color="#061c4c"/>
+                    </linearGradient>
+                    <filter id="checkGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <path d="M110 8 202 42v66c0 61-37 103-92 131C55 211 18 169 18 108V42Z" fill="#041b3a" stroke="url(#shieldOuter)" stroke-width="8" stroke-linejoin="round"/>
+                <path d="M110 25 185 52v56c0 48-28 83-75 108-47-25-75-60-75-108V52Z" fill="url(#shieldInner)" stroke="#38dfff" stroke-width="2"/>
+                <path d="M110 26 110 215C63 190 35 155 35 108V52Z" fill="#0c75df" opacity=".22"/>
+                <path d="m65 119 29 29 62-68" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" filter="url(#checkGlow)"/>
+                <path d="m65 119 29 29 62-68" fill="none" stroke="#d9fbff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="status-tag status-safe"><span>✓</span> Safe-looking</div>
+            <div class="status-tag status-warning"><span>⚠</span> Suspicious</div>
+            <div class="status-tag status-danger"><span>!</span> Dangerous signs</div>
+        </div>
+    </div>
+</section>
+
+<section class="features" id="how">
+    <div class="container">
+        <h2 class="section-title">Your First Line of <span>Defence</span></h2>
+        <p class="section-description">Simple checks that help you recognize potential warning signs in website addresses.</p>
+        <div class="feature-grid">
+            <article class="feature-card">
+                <div class="feature-icon" aria-hidden="true">🛡️</div>
+                <h3>Detect Risky Patterns</h3>
+                <p>Review suspicious words, unusual domains, IP-address hosts, and other patterns sometimes seen in deceptive links.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon" aria-hidden="true">⚡</div>
+                <h3>Fast and Simple</h3>
+                <p>Enter a URL and receive a quick, readable result without creating an account or installing software.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon" aria-hidden="true">🔐</div>
+                <h3>Build Safer Habits</h3>
+                <p>Learn why you should verify website addresses before sharing passwords, payment details, or personal information.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon" aria-hidden="true">🔎</div>
+                <h3>Understand URL Details</h3>
+                <p>Inspect the hostname, connection protocol, and warning patterns found by the basic checker.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="info-section" id="about">
+    <div class="container info-grid">
+        <article class="info-card">
+            <div class="card-heading">
+                <div class="heading-icon" aria-hidden="true">🛡️</div>
+                <h2>About <span>LinkShield</span></h2>
+            </div>
+            <p>LinkShield is a beginner-friendly cybersecurity awareness project designed to help people notice common warning signs in website addresses.</p>
+            <p>It uses HTML to structure the page, CSS to create the interface, and JavaScript to inspect URL patterns and show a result.</p>
+            <p>The tool is intended for learning and awareness. It does not visit the submitted website, inspect its content, or query a live phishing or malware database.</p>
+            <div class="notice"><strong>Remember:</strong> a clean result is not proof that a link is safe. When in doubt, do not open it; visit the service through its official website or app instead.</div>
+        </article>
+
+        <article class="info-card" id="tips">
+            <div class="card-heading">
+                <div class="heading-icon" aria-hidden="true">💡</div>
+                <h2>Online Safety <span>Tips</span></h2>
+            </div>
+            <p class="tips-intro">Use these habits whenever you receive a link by email, text message, social media, or chat.</p>
+            <div class="tips-grid">
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Check the real domain</h3><p>Read the hostname carefully. Misspellings or extra words can imitate a familiar brand.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>HTTPS is not a guarantee</h3><p>The padlock indicates an encrypted connection, not that the site itself is honest.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Be careful with shortened links</h3><p>Short links can hide the destination. Confirm the sender and destination before opening.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Question urgent messages</h3><p>Scammers may create panic with account warnings, delivery problems, prizes, or deadlines.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Protect passwords and OTPs</h3><p>Never share passwords, one-time codes, PINs, or recovery codes with someone who contacts you.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Use official channels</h3><p>Open the official app or type the known website address yourself instead of following an unexpected link.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Check messages and attachments</h3><p>Be cautious with unexpected files, QR codes, payment requests, and links from unknown senders.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Keep devices updated</h3><p>Update your browser, operating system, and security software to reduce exposure to known threats.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Do not trust display text alone</h3><p>A link label can differ from its actual destination. Check the address before proceeding.</p></div></div>
+                <div class="tip"><span class="tip-check">✓</span><div><h3>Pause before paying</h3><p>Verify bank details and payment requests independently, especially when the request is unexpected.</p></div></div>
+            </div>
+        </article>
+    </div>
+</section>
+
+<section class="response-section">
+    <div class="container">
+        <div class="response-box">
+            <h2>Clicked a suspicious link? <span>Act quickly.</span></h2>
+            <div class="response-steps">
+                <div class="response-step"><span class="step-number">1</span><p><strong>Stop interacting.</strong> Close the page. Do not download files, approve prompts, or enter more information.</p></div>
+                <div class="response-step"><span class="step-number">2</span><p><strong>Secure your accounts.</strong> If you entered a password, change it through the official site and enable multi-factor authentication.</p></div>
+                <div class="response-step"><span class="step-number">3</span><p><strong>Get help if needed.</strong> Contact your bank immediately if payment details were exposed, and report the message to the relevant service.</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="contact" id="contact">
+    <div class="container">
+        <h2 class="section-title">Browse Smarter. <span>Stay Safer.</span></h2>
+        <p>Think before you click. Your online safety matters.</p>
+    </div>
+</section>
+</main>
+
+<footer>
+    <div class="container footer-content">
+        <p>© 2026 LinkShield · Educational demonstration</p>
+        <p>Safer Clicks. A Safer You.</p>
+        <a href="#home">Back to Top ↑</a>
+    </div>
+</footer>
+
+<script>
+const form = document.getElementById("urlForm");
+const input = document.getElementById("urlInput");
+const result = document.getElementById("result");
+
+const suspiciousWords = [
+    "verify", "account", "secure", "login",
+    "password", "free-prize", "gift", "claim"
+];
+
+function analyzeURL(rawURL) {
+    let address = rawURL.trim();
+
+    if (!/^https?:\/\//i.test(address)) {
+        address = "https://" + address;
+    }
+
+    let parsedURL;
+    try {
+        parsedURL = new URL(address);
+    } catch (error) {
+        return {
+            type: "invalid",
+            title: "Invalid URL",
+            message: "Please enter a valid website address.",
+            issues: ["The address could not be parsed. Check the spelling and try again."]
+        };
+    }
+
+    if (!["http:", "https:"].includes(parsedURL.protocol) || !parsedURL.hostname) {
+        return {
+            type: "invalid",
+            title: "Unsupported URL",
+            message: "Please enter a website address using HTTP or HTTPS.",
+            issues: ["A valid website hostname and supported protocol are required."]
+        };
+    }
+
+    const hostname = parsedURL.hostname.toLowerCase();
+    const issues = [];
+
+    if (parsedURL.username || parsedURL.password) {
+        issues.push("The URL contains embedded login credentials.");
+    }
+
+    const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+    if (isIPv4) {
+        issues.push("The website uses an IP address instead of a regular domain name.");
+    }
+
+    if (hostname.split(".").some(part => part.startsWith("xn--"))) {
+        issues.push("The domain contains encoded international characters; verify it carefully.");
+    }
+
+    if (hostname.length > 50) {
+        issues.push("The hostname is unusually long.");
+    }
+
+    if (hostname.split(".").length > 4) {
+        issues.push("The hostname contains multiple subdomains.");
+    }
+
+    const foundWords = suspiciousWords.filter(word => hostname.includes(word));
+    if (foundWords.length > 0) {
+        issues.push("Potentially deceptive keywords found: " + foundWords.join(", ") + ".");
+    }
+
+    if (parsedURL.protocol === "http:") {
+        issues.push("The URL uses HTTP, which does not provide HTTPS transport encryption.");
+    }
+
+    let type, title, message;
+    if (issues.length >= 3) {
+        type = "suspicious";
+        title = "Several Warning Signs Found";
+        message = "This URL matches several warning patterns. Do not enter passwords or personal information; verify the destination through an official channel.";
+    } else if (issues.length > 0) {
+        type = "caution";
+        title = "Use Caution";
+        message = "One or more warning patterns were found. Review the address and verify it independently before deciding what to do.";
+    } else {
+        type = "safe";
+        title = "No Obvious Warning Signs";
+        message = "These basic checks did not find the patterns they look for. This does not mean the website is trustworthy or safe.";
+    }
+
+    return {
+        type,
+        title,
+        message,
+        hostname,
+        protocol: parsedURL.protocol.toUpperCase().replace(":", ""),
+        issues
+    };
+}
+
+function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+function displayResult(data) {
+    result.style.display = "block";
+    result.className = data.type;
+
+    let icon = "🛡️";
+    if (data.type === "suspicious") icon = "⚠️";
+    if (data.type === "caution" || data.type === "invalid") icon = "🔎";
+
+    let detailsHTML = "";
+    if (data.hostname) {
+        detailsHTML = `
+            <hr class="result-divider">
+            <h3>URL Details</h3>
+            <div class="details">
+                <div class="detail-item"><strong>Domain</strong>${escapeHTML(data.hostname)}</div>
+                <div class="detail-item"><strong>Protocol</strong>${escapeHTML(data.protocol)}</div>
+                <div class="detail-item"><strong>Warning Patterns</strong>${data.issues.length}</div>
+                <div class="detail-item"><strong>Analysis Method</strong>Basic URL Pattern Analysis</div>
+            </div>`;
+    }
+
+    let issuesHTML = "";
+    if (data.issues.length > 0) {
+        issuesHTML = `<h3>Analysis Findings</h3><ul class="issue-list">${
+            data.issues.map(issue => `<li>${escapeHTML(issue)}</li>`).join("")
+        }</ul>`;
+    } else if (data.type === "safe") {
+        issuesHTML = `<p style="color:#00e6a1;margin-top:14px">✓ No obvious warning patterns were detected by these basic checks.</p>`;
+    }
+
+    let label = "REVIEW REQUIRED";
+    if (data.type === "safe") label = "BASIC CHECK COMPLETE";
+    if (data.type === "invalid") label = "INVALID INPUT";
+
+    result.innerHTML = `
+        <div class="result-heading">
+            <div class="result-icon" aria-hidden="true">${icon}</div>
+            <div><h2>${escapeHTML(data.title)}</h2><p>LinkShield Analysis Result</p></div>
+            <span class="result-label">${label}</span>
+        </div>
+        ${detailsHTML}
+        ${issuesHTML}
+        <div class="result-message">${escapeHTML(data.message)}</div>
+        <p class="result-note">Limitation: this demo checks URL patterns only. It does not inspect website content or query a live threat-intelligence database.</p>`;
+    result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+form.addEventListener("submit", function(event) {
+    event.preventDefault();
+    if (!input.value.trim()) {
+        input.focus();
+        return;
+    }
+    displayResult(analyzeURL(input.value));
+});
+
+document.querySelectorAll("[data-url]").forEach(button => {
+    button.addEventListener("click", function() {
+        input.value = button.dataset.url;
+        input.focus();
+    });
+});
+
+document.querySelectorAll("nav a").forEach(link => {
+    link.addEventListener("click", function() {
+        document.querySelectorAll("nav a").forEach(item => item.classList.remove("active"));
+        link.classList.add("active");
+    });
+});
+</script>
+</body>
+</html>
