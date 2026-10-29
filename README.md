@@ -1,4 +1,4 @@
-# 🛡️ LinkShield — Suspicious Link Detector
+# 🛡️ LinkShield — Main Version
 
 **Think Before You Click. Browse Smarter. Stay Safer.**
 
